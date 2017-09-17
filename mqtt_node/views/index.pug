@@ -1,0 +1,137 @@
+//-
+	Index.pug
+
+	This is the home page for this project. It is configured to auto-connect
+	to the server's websocket and handle any events fired from the server end.
+//-
+
+extends base
+
+//- The visual portion of the page
+block content
+	div(class='panel panel-default')
+		div.panel-body
+			h1 MQTT Tracker
+			p Simple Website for tracking population 'heat maps' using MQTT
+			
+			form#thresholdForm(onsubmit='return false;')
+				input(type="radio" name="zones" value="zone1")
+				| Zone 1        
+				input(type="radio" name="zones" value="zone2")
+				| Zone 2        
+				input(type="radio" name="zones" value="zone3")
+				| Zone 3        
+				input(type="radio" name="zones" value="zone4")
+				| Zone 4        
+				input#thresholdVal(type="text", placeholder='Enter threshold')
+				button(name="data") Submit
+				
+
+			// Implement the graphics portion in the canvas supplied below
+			div.well(style='background: url("map.png");background-size:cover;')
+				canvas(id='grid')
+	
+	div(class='panel')
+		div.panel-body
+			button(class='btn btn-primary', type='button', data-toggle='collapse', data-target='#debugLog', aria-expanded='false', aria-controls='debugLog') Show Debug Log
+			div(id='debugLog', class='collapse')
+				div(id='debugLogList', class='well')
+
+//- The scripts needed by this page
+block scripts
+	script(type='text/javascript').
+	
+		var socket = io();
+		
+		$('#thresholdForm').submit(function() {
+			socket.emit('threshold', {
+				type: 'THRESHOLD',
+				msg: $('#thresholdVal').val(),
+				zone: $('input[name=zones]:checked').val()
+			});
+			$('#thresholdVal').val('');
+		});
+	
+		$(() => {
+			
+			var canv = $('#grid').get(0);
+			var context = canv.getContext('2d');
+			var width = canv.width;
+			var height = canv.height;
+			
+			const zones = {
+				'z1': {
+					x: 30,
+					y: 30,
+					count: 0
+				},
+				'z2': {
+					x: 30,
+					y: height - 30,
+					count: 0
+				},
+				'z3': {
+					x: width - 40,
+					y: height - 30,
+					count: 0
+				},
+				'z4': {
+					x: width - 40,
+					y: 30,
+					count: 0
+				}
+			};
+
+			// Handle socket events here
+			//--------------------------
+			// Adds to the debug list
+			socket.on('debug', data => {
+				var time = new Date();
+				$('#debugLogList').append('<div>' + time + ': ' + data.type + ' | ' + data.msg + '</div>');
+			});
+			
+			socket.on('zones', data => {
+				
+				context.clearRect(0,0,width,height);
+				
+				context.fillText('zone1', 10, 20);
+				context.fillText('zone2', 10, canv.height - 20);
+				context.fillText('zone3', canv.width - 50, canv.height - 20);
+				context.fillText('zone4', canv.width - 50, 20);
+				
+				if (data.name === 'zone_1') {
+					zones.z1.count = data.msg;
+				}
+				else if (data.name === 'zone_2') {
+					zones.z2.count = data.msg;
+				}
+				else if (data.name === 'zone_3') {
+					zones.z3.count = data.msg;
+				}
+				else if (data.name === 'zone_4') {
+					zones.z4.count = data.msg;
+				}
+				
+				context.fillText(zones.z1.count, zones.z1.x, zones.z1.y);
+				context.fillText(zones.z2.count, zones.z2.x, zones.z2.y);
+				context.fillText(zones.z3.count, zones.z3.x, zones.z3.y);
+				context.fillText(zones.z4.count, zones.z4.x, zones.z4.y);
+			});
+			//--------------------------
+		});
+	
+	script(type='text/javascript').
+		$(() => {
+			// Handle any canvas code here
+			//----------------------------
+			var canv = $('#grid').get(0);
+			var context = canv.getContext('2d');
+			context.fillText('zone1', 10, 20);
+			context.fillText('zone2', 10, canv.height - 20);
+			context.fillText('zone3', canv.width - 50, canv.height - 20);
+			context.fillText('zone4', canv.width - 50, 20);
+			var img = new Image();
+			img.src = 'map.png'
+			context.drawImage(img,0,0, canv.width, canv.height);
+			//----------------------------
+		});
