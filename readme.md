@@ -4,7 +4,7 @@
 
 <a>https://www.youtube.com/watch?v=OFWZfW4lwUM</a>
 
-## 
+## Campus Heat Map using Mbed Boards and Beacons
 
 ## Summary
 A campus app and an administrative dash board with the purpose of creating a dynamic, real-time heat map showing 
